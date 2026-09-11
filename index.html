@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXUS TOOL - THE SYSTEM</title>
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #08090c;
+    }
+
+    /* Hiệu ứng kính mờ nguyên bản từ Nexus Tool */
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(18px) saturate(180%);
+      -webkit-backdrop-filter: blur(18px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    }
+
+    .glass-panel-sub {
+      background: rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .glass-input {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      color: #e2e8f0;
+      transition: all 0.2s ease;
+    }
+    .glass-input:focus {
+      border-color: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.04);
+      outline: none;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+    }
+
+    .glass-btn {
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.2s ease;
+    }
+    .glass-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-1px);
+    }
+    .glass-btn:active {
+      transform: translateY(1px);
+    }
+
+    .tab-active {
+      background: rgba(255, 255, 255, 0.1) !important;
+      border-color: rgba(255, 255, 255, 0.25) !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+    }
+
+    /* Hai quả cầu ánh sáng nền nguyên bản */
+    .orb-1 {
+      position: fixed;
+      top: 10%;
+      left: 15%;
+      width: 450px;
+      height: 450px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+      filter: blur(60px);
+      z-index: 0;
+      pointer-events: none;
+    }
+    .orb-2 {
+      position: fixed;
+      bottom: 10%;
+      right: 15%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(14, 165, 233, 0.12) 0%, rgba(0, 0, 0, 0) 70%);
+      filter: blur(70px);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Thanh cuộn tối giản */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+  </style>
+</head>
+<body class="text-slate-200 min-h-screen flex flex-col relative overflow-x-hidden selection:bg-white/20">
+
+  <!-- Hai đốm sáng tạo độ sâu kính -->
+  <div class="orb-1"></div>
+  <div class="orb-2"></div>
+
+  <!-- Header Nexus Tool -->
+  <header class="glass-panel sticky top-0 z-50 px-6 py-4 border-x-0 border-t-0 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg glass-panel flex items-center justify-center text-white/90 shadow-inner">
+        <i class="fas fa-cube text-sm"></i>
+      </div>
+      <span class="font-bold tracking-wider text-sm uppercase text-white/80">NEXUS TOOL</span>
+    </div>
+    
+    <div class="flex items-center gap-3">
+      <button onclick="claimDailyReward()" id="btnDailyCheckin" class="glass-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 flex items-center gap-2">
+        <i class="fas fa-gift text-blue-400"></i>
+        <span>Điểm danh (+EXP)</span>
+      </button>
+
+      <button onclick="openAuthModal()" class="glass-input px-3 py-1.5 rounded-xl text-xs font-mono text-slate-300 flex items-center gap-2">
+        <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="userAccountLabel">SYSTEM READY</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Khung nội dung 2 cột -->
+  <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10">
+
+    <!-- CỘT TRÁI (5 cols): PROFILE & LỊCH KỶ LUẬT -->
+    <section class="lg:col-span-5 flex flex-col gap-4">
+      
+      <!-- Panel Thợ Săn -->
+      <div class="glass-panel rounded-3xl p-6 flex flex-col gap-4">
+        <div class="flex items-center gap-4 border-b border-white/5 pb-4">
+          <div class="relative group cursor-pointer" onclick="openAvatarModal()" title="Nhấp để đổi Avatar">
+            <div class="w-16 h-16 rounded-2xl glass-panel-sub p-0.5 overflow-hidden flex items-center justify-center">
+              <img id="userAvatar" src="https://images.unsplash.com/photo-1578632767115-351597cf2477?w=150&auto=format&fit=crop&q=80" class="w-full h-full object-cover rounded-xl">
+            </div>
+            <div class="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+              <i class="fas fa-camera text-xs text-white"></i>
+            </div>
+            <span class="absolute -bottom-1 -right-1 text-[10px] font-mono font-bold px-1.5 bg-white text-slate-950 rounded-md" id="avatarLevel">LV.1</span>
+          </div>
+
+          <div class="overflow-hidden flex-1">
+            <div class="flex items-center gap-2 mb-1">
+              <span id="hunterRankBadge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full glass-panel-sub text-slate-300">HẠNG E</span>
+              <span class="text-[10px] font-mono text-amber-400 font-bold" id="streakBadge"><i class="fas fa-fire mr-1"></i>0 Ngày</span>
+            </div>
+            <h2 id="hunterName" class="text-base font-bold text-white truncate">Thợ Săn Vô Danh</h2>
+            <p id="hunterTitle" class="text-xs text-slate-400 font-mono">Tân Binh Thức Tỉnh</p>
+          </div>
+        </div>
+
+        <!-- Tiến trình EXP -->
+        <div class="space-y-1.5">
+          <div class="flex justify-between text-xs font-mono">
+            <span class="text-slate-400">Kinh nghiệm</span>
+            <span class="text-slate-200 font-bold" id="expLabel">0 / 100 EXP</span>
+          </div>
+          <div class="w-full h-2 rounded-full bg-slate-900 border border-white/5 overflow-hidden p-[1px]">
+            <div id="expBar" class="h-full bg-gradient-to-r from-blue-500 to-indigo-400 rounded-full transition-all duration-300" style="width: 0%;"></div>
+          </div>
+          <div class="flex justify-between text-[10px] font-mono text-slate-400 pt-0.5">
+            <span>Hiệu số chuỗi:</span>
+            <span id="streakMultiplierText" class="text-amber-400 font-bold">x1.0 EXP</span>
+          </div>
+        </div>
+
+        <!-- 4 Chỉ số thuộc tính -->
+        <div class="grid grid-cols-2 gap-2 text-xs font-mono pt-1">
+          <div class="p-2.5 rounded-xl glass-panel-sub flex items-center justify-between">
+            <span class="text-slate-400 flex items-center gap-1.5"><i class="fas fa-hand-fist text-rose-400"></i>STR</span>
+            <b id="statSTR" class="text-white">0</b>
+          </div>
+          <div class="p-2.5 rounded-xl glass-panel-sub flex items-center justify-between">
+            <span class="text-slate-400 flex items-center gap-1.5"><i class="fas fa-brain text-blue-400"></i>INT</span>
+            <b id="statINT" class="text-white">0</b>
+          </div>
+          <div class="p-2.5 rounded-xl glass-panel-sub flex items-center justify-between">
+            <span class="text-slate-400 flex items-center gap-1.5"><i class="fas fa-heart-pulse text-emerald-400"></i>VIT</span>
+            <b id="statVIT" class="text-white">0</b>
+          </div>
+          <div class="p-2.5 rounded-xl glass-panel-sub flex items-center justify-between">
+            <span class="text-slate-400 flex items-center gap-1.5"><i class="fas fa-bolt text-amber-400"></i>DEX</span>
+            <b id="statDEX" class="text-white">0</b>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel Lịch Kỷ Luật 7 Ngày -->
+      <div class="glass-panel rounded-3xl p-5 flex flex-col gap-3">
+        <div class="flex justify-between items-center border-b border-white/5 pb-2.5">
+          <h3 class="text-xs uppercase tracking-widest font-semibold text-slate-400 flex items-center gap-2">
+            <i class="fas fa-calendar-check text-slate-500"></i> Chu kỳ 7 ngày gần nhất
+          </h3>
+          <span class="text-[10px] font-mono text-slate-500">ACTIVE</span>
+        </div>
+        <div id="calendarGrid" class="grid grid-cols-7 gap-1.5 text-center font-mono"></div>
+      </div>
+
+    </section>
+
+    <!-- CỘT PHẢI (7 cols): BẢNG MỤC TIÊU & BẢNG XẾP HẠNG -->
+    <section class="lg:col-span-7 flex flex-col gap-4">
+
+      <!-- Tabs Chuyển đổi -->
+      <div class="glass-panel p-1 rounded-2xl flex gap-1">
+        <button onclick="switchMode('quests')" id="tabQuests" class="tab-active flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 text-slate-400">
+          <i class="fas fa-list-check"></i> BẢNG MỤC TIÊU
+        </button>
+        <button onclick="switchMode('leaderboard')" id="tabLeaderboard" class="flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 text-slate-400">
+          <i class="fas fa-trophy text-amber-400"></i> BẢNG VINH DANH
+        </button>
+      </div>
+
+      <!-- VIEW 1: BẢNG MỤC TIÊU -->
+      <div id="viewQuests" class="flex flex-col gap-4">
+        
+        <!-- Khung Nhập Thông Minh -->
+        <div class="glass-panel rounded-3xl p-5 flex flex-col gap-3">
+          <div class="flex justify-between items-center">
+            <label class="text-xs uppercase tracking-widest font-semibold text-slate-400 flex items-center gap-2">
+              <i class="fas fa-plus text-slate-500"></i> Khởi tạo mục tiêu
+            </label>
+            <div class="flex items-center gap-2 text-[10px] font-mono">
+              <span class="text-slate-500">Hệ thống quét:</span>
+              <span id="previewRank" class="px-2 py-0.5 rounded-full glass-panel-sub text-slate-300 font-bold">HẠNG E</span>
+              <span id="previewStat" class="px-2 py-0.5 rounded-full glass-panel-sub text-slate-300 font-bold">DEX</span>
+            </div>
+          </div>
+
+          <input type="text" id="questInput" oninput="liveDetect(this.value)" placeholder="Gõ mục tiêu (vd: Chạy bộ 3km, Ôn thi vi tích phân, Viết báo cáo...)" 
+            class="glass-input rounded-2xl p-3.5 text-sm w-full placeholder:text-slate-600">
+
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 mt-1">
+            <div class="sm:col-span-6">
+              <input type="datetime-local" id="questDeadline" class="glass-input rounded-xl px-3 py-2 text-xs font-mono text-slate-300 w-full">
+            </div>
+            <div class="sm:col-span-3 flex items-center gap-2 px-3 glass-panel-sub rounded-xl">
+              <input type="checkbox" id="chkDaily" class="w-3.5 h-3.5 rounded accent-blue-500 cursor-pointer">
+              <label for="chkDaily" class="text-xs text-slate-300 cursor-pointer select-none">Daily</label>
+            </div>
+            <div class="sm:col-span-3">
+              <button onclick="addQuest()" class="w-full h-full py-2.5 rounded-xl glass-btn text-white font-bold text-xs tracking-wider uppercase flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15">
+                Kích hoạt
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Danh sách Quest -->
+        <div class="glass-panel rounded-3xl p-6 flex flex-col flex-1 gap-4">
+          <div class="flex justify-between items-center border-b border-white/5 pb-3">
+            <h3 class="text-xs uppercase tracking-widest font-semibold text-slate-400 flex items-center gap-2">
+              <i class="fas fa-crosshairs text-slate-500"></i> Mục tiêu đang kích hoạt
+            </h3>
+            <div class="flex gap-1 glass-panel-sub p-1 rounded-xl text-[11px] font-mono">
+              <button onclick="filterQuests('all')" id="btnFilterAll" class="px-3 py-1 rounded-lg bg-white/10 text-white font-bold">TẤT CẢ</button>
+              <button onclick="filterQuests('daily')" id="btnFilterDaily" class="px-3 py-1 rounded-lg text-slate-400">DAILY</button>
+            </div>
+          </div>
+
+          <div id="questList" class="space-y-2.5 flex-1 overflow-y-auto max-h-[440px] pr-1"></div>
+        </div>
+
+      </div>
+
+      <!-- VIEW 2: BẢNG XẾP HẠNG -->
+      <div id="viewLeaderboard" class="hidden glass-panel rounded-3xl p-6 flex flex-col gap-4">
+        <div class="border-b border-white/5 pb-3">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fas fa-crown text-amber-400"></i> Bảng vinh danh thợ săn
+          </h3>
+          <p class="text-xs text-slate-400 font-mono">Xếp hạng theo cấp bậc và chuỗi ngày rèn luyện liên tục</p>
+        </div>
+        <div id="leaderboardList" class="space-y-2 font-mono"></div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- MODAL ĐỔI AVATAR -->
+  <div id="avatarModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+    <div class="glass-panel rounded-3xl p-6 max-w-md w-full flex flex-col gap-4">
+      <div class="flex justify-between items-center border-b border-white/10 pb-3">
+        <h3 class="text-sm font-bold text-white"><i class="fas fa-user-gear mr-2 text-slate-400"></i>Thay đổi diện mạo</h3>
+        <button onclick="closeAvatarModal()" class="text-slate-400 hover:text-white"><i class="fas fa-xmark"></i></button>
+      </div>
+      <p class="text-xs text-slate-400">Chọn ảnh mẫu hoặc tải ảnh trực tiếp từ thiết bị của bạn:</p>
+      <div class="grid grid-cols-4 gap-3 py-1" id="presetAvatarGrid"></div>
+      <div class="border-t border-white/10 pt-3">
+        <label class="block text-xs text-slate-400 mb-2 font-mono">Tải ảnh đại diện cá nhân:</label>
+        <input type="file" accept="image/*" onchange="uploadAvatar(this)" class="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20 cursor-pointer">
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ĐĂNG NHẬP -->
+  <div id="authModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+    <div class="glass-panel rounded-3xl p-6 max-w-md w-full flex flex-col gap-4">
+      <div class="flex justify-between items-center border-b border-white/10 pb-3">
+        <h3 class="text-sm font-bold text-white"><i class="fas fa-key mr-2 text-slate-400"></i>Xác thực thợ săn</h3>
+        <button onclick="closeAuthModal()" class="text-slate-400 hover:text-white"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="space-y-3 text-xs font-mono">
+        <div>
+          <label class="block text-slate-400 mb-1">Tên thợ săn</label>
+          <input type="text" id="authName" class="glass-input rounded-xl px-3.5 py-2.5 text-sm w-full text-white" placeholder="vd: Shadow_Hunter">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Mã bảo mật (Passcode)</label>
+          <input type="password" id="authPass" class="glass-input rounded-xl px-3.5 py-2.5 text-sm w-full text-white" placeholder="••••••••">
+        </div>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button onclick="saveAuth()" class="flex-1 py-2.5 rounded-xl glass-btn text-white font-semibold text-xs transition bg-white/10 hover:bg-white/20">Lưu tiến trình</button>
+        <button onclick="logoutAuth()" class="px-4 py-2.5 rounded-xl glass-panel-sub text-xs text-slate-400 hover:text-white">Đăng xuất</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const KEYWORDS = {
+      STR: ['chạy', 'tập', 'gym', 'chống đẩy', 'hít đất', 'squat', 'bơi', 'tạ', 'vận động', 'đi bộ'],
+      INT: ['học', 'đọc', 'code', 'lập trình', 'toán', 'ôn thi', 'bài tập', 'nghiên cứu', 'sách', 'tài liệu', 'lab'],
+      VIT: ['nước', 'ngủ', 'ăn', 'uống', 'nghỉ', 'dọn phòng', 'quét nhà', 'sức khỏe', 'thư giãn'],
+      DEX: ['deadline', 'nộp bài', 'báo cáo', 'đồ án', 'thuyết trình', 'họp', 'dự án', 'email', 'check']
+    };
+
+    const RANK_CONFIG = {
+      'E': { exp: 25, color: 'text-slate-400 border-white/10' },
+      'D': { exp: 50, color: 'text-slate-200 border-white/20' },
+      'C': { exp: 100, color: 'text-sky-400 border-sky-400/30' },
+      'B': { exp: 200, color: 'text-purple-400 border-purple-400/30' },
+      'A': { exp: 400, color: 'text-amber-400 border-amber-400/30' },
+      'S': { exp: 800, color: 'text-rose-400 border-rose-400/30' }
+    };
+
+    const PRESET_AVATARS = [
+      'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=150&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=150&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=150&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1563089145-599997674d42?w=150&auto=format&fit=crop&q=80'
+    ];
+
+    let hunter = {
+      auth: { username: '', passcode: '' },
+      profile: {
+        name: 'Thợ Săn Vô Danh',
+        avatar: PRESET_AVATARS[0],
+        level: 1,
+        currentExp: 0,
+        stats: { STR: 0, INT: 0, VIT: 0, DEX: 0 },
+        streak: 0,
+        lastCheckin: '',
+        history: {}
+      },
+      quests: []
+    };
+
+    let filter = 'all';
+
+    window.onload = () => {
+      const saved = localStorage.getItem('NEXUS_SYSTEM_SAVE');
+      if (saved) {
+        try { hunter = JSON.parse(saved); } catch(e) {}
+      }
+      render();
+      renderCalendar();
+      renderLeaderboard();
+      initPresets();
+    };
+
+    function save() {
+      localStorage.setItem('NEXUS_SYSTEM_SAVE', JSON.stringify(hunter));
+      render();
+    }
+
+    function getMultiplier() {
+      const s = hunter.profile.streak;
+      if (s >= 14) return { val: 2.0, text: 'x2.0 EXP' };
+      if (s >= 7)  return { val: 1.5, text: 'x1.5 EXP' };
+      if (s >= 4)  return { val: 1.2, text: 'x1.2 EXP' };
+      return { val: 1.0, text: 'x1.0 EXP' };
+    }
+
+    function claimDailyReward() {
+      const today = new Date().toISOString().split('T')[0];
+      if (hunter.profile.lastCheckin === today) {
+        alert("Hôm nay bạn đã hoàn tất điểm danh rồi!");
+        return;
+      }
+      hunter.profile.streak += 1;
+      hunter.profile.lastCheckin = today;
+      hunter.profile.history[today] = true;
+
+      const bonus = Math.round(50 * getMultiplier().val);
+      hunter.profile.currentExp += bonus;
+      checkLevelUp();
+      save();
+      renderCalendar();
+      confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+      alert(`Điểm danh thành công! Chuỗi đạt ${hunter.profile.streak} ngày (+${bonus} EXP).`);
+    }
+
+    function detect(text) {
+      const lower = text.toLowerCase();
+      let matchedStat = 'DEX';
+      let maxMatches = 0;
+
+      for (const [stat, list] of Object.entries(KEYWORDS)) {
+        let count = 0;
+        list.forEach(k => { if (lower.includes(k)) count++; });
+        if (count > maxMatches) { maxMatches = count; matchedStat = stat; }
+      }
+
+      let rank = 'E';
+      const words = text.trim().split(/\s+/).length;
+      if (lower.includes('đồ án') || lower.includes('ôn thi') || words >= 9) rank = 'A';
+      else if (lower.includes('báo cáo') || words >= 6) rank = 'B';
+      else if (lower.includes('bài tập') || words >= 4) rank = 'C';
+      else if (words >= 3) rank = 'D';
+
+      return { rank, stat: matchedStat };
+    }
+
+    function liveDetect(val) {
+      if (!val.trim()) {
+        document.getElementById('previewRank').innerText = 'HẠNG E';
+        document.getElementById('previewStat').innerText = 'DEX';
+        return;
+      }
+      const res = detect(val);
+      document.getElementById('previewRank').innerText = 'HẠNG ' + res.rank;
+      document.getElementById('previewStat').innerText = res.stat;
+    }
+
+    function addQuest() {
+      const input = document.getElementById('questInput');
+      const text = input.value.trim();
+      const deadline = document.getElementById('questDeadline').value;
+      const isDaily = document.getElementById('chkDaily').checked;
+
+      if (!text) return;
+
+      const res = detect(text);
+      hunter.quests.unshift({
+        id: 'q_' + Date.now(),
+        title: text,
+        rank: res.rank,
+        stat: res.stat,
+        exp: RANK_CONFIG[res.rank].exp,
+        deadline: deadline || null,
+        isDaily: isDaily,
+        completed: false
+      });
+
+      input.value = '';
+      document.getElementById('questDeadline').value = '';
+      document.getElementById('chkDaily').checked = false;
+      liveDetect('');
+      save();
+    }
+
+    function toggleQuest(id) {
+      const q = hunter.quests.find(x => x.id === id);
+      if (!q) return;
+
+      if (!q.completed) {
+        q.completed = true;
+        hunter.profile.stats[q.stat] = (hunter.profile.stats[q.stat] || 0) + 1;
+        let earned = q.exp;
+        if (q.isDaily) earned = Math.round(earned * getMultiplier().val);
+        hunter.profile.currentExp += earned;
+        checkLevelUp();
+      } else {
+        q.completed = false;
+        hunter.profile.currentExp = Math.max(0, hunter.profile.currentExp - q.exp);
+      }
+      save();
+    }
+
+    function checkLevelUp() {
+      const max = hunter.profile.level * 100;
+      if (hunter.profile.currentExp >= max) {
+        hunter.profile.currentExp -= max;
+        hunter.profile.level += 1;
+        confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+      }
+    }
+
+    function deleteQuest(id) {
+      hunter.quests = hunter.quests.filter(x => x.id !== id);
+      save();
+    }
+
+    function filterQuests(type) {
+      filter = type;
+      document.getElementById('btnFilterAll').className = type === 'all' ? 'px-3 py-1 rounded-lg bg-white/10 text-white font-bold' : 'px-3 py-1 rounded-lg text-slate-400';
+      document.getElementById('btnFilterDaily').className = type === 'daily' ? 'px-3 py-1 rounded-lg bg-white/10 text-white font-bold' : 'px-3 py-1 rounded-lg text-slate-400';
+      renderQuestList();
+    }
+
+    function renderCalendar() {
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+      const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const iso = d.toISOString().split('T')[0];
+        const isDone = !!hunter.profile.history[iso];
+
+        grid.innerHTML += `
+          <div class="p-2 rounded-xl flex flex-col items-center gap-1 ${isDone ? 'bg-white/10 border border-white/20' : 'glass-panel-sub border-transparent'}">
+            <span class="text-[9px] text-slate-500">${days[d.getDay()]}</span>
+            <span class="text-xs font-bold ${isDone ? 'text-white' : 'text-slate-400'}">${d.getDate()}</span>
+            <span class="w-1.5 h-1.5 rounded-full ${isDone ? 'bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'bg-slate-800'}"></span>
+          </div>
+        `;
+      }
+    }
+
+    function renderLeaderboard() {
+      const board = document.getElementById('leaderboardList');
+      const list = [
+        { name: 'Kaelen_Shadow', rank: 'HẠNG S', level: 58, streak: 42 },
+        { name: 'Vesper_Nova', rank: 'HẠNG A', level: 41, streak: 28 },
+        { name: hunter.profile.name, rank: document.getElementById('hunterRankBadge')?.innerText || 'HẠNG E', level: hunter.profile.level, streak: hunter.profile.streak, isYou: true },
+        { name: 'Aegis_Guard', rank: 'HẠNG C', level: 8, streak: 6 }
+      ].sort((a, b) => b.level - a.level);
+
+      board.innerHTML = list.map((h, idx) => `
+        <div class="p-3.5 rounded-2xl glass-panel-sub flex items-center justify-between border ${h.isYou ? 'border-white/20 bg-white/[0.04]' : 'border-transparent'}">
+          <div class="flex items-center gap-3">
+            <span class="font-bold text-sm ${idx === 0 ? 'text-amber-400' : 'text-slate-500'}">#${idx + 1}</span>
+            <div>
+              <b class="text-xs text-white block">${h.name} ${h.isYou ? '<span class="text-[9px] text-blue-400 font-normal">(Bạn)</span>' : ''}</b>
+              <span class="text-[10px] text-slate-400">Chuỗi: ${h.streak} ngày</span>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-xs font-bold text-white block">LV.${h.level}</span>
+            <span class="text-[9px] text-slate-400">${h.rank}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function switchMode(mode) {
+      const isQ = mode === 'quests';
+      document.getElementById('viewQuests').classList.toggle('hidden', !isQ);
+      document.getElementById('viewLeaderboard').classList.toggle('hidden', isQ);
+      document.getElementById('tabQuests').className = isQ 
+        ? 'tab-active flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 text-slate-400'
+        : 'flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 text-slate-400';
+      document.getElementById('tabLeaderboard').className = !isQ 
+        ? 'tab-active flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 text-slate-400'
+        : 'flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 text-slate-400';
+    }
+
+    function initPresets() {
+      document.getElementById('presetAvatarGrid').innerHTML = PRESET_AVATARS.map(url => `
+        <div onclick="setAvatar('${url}')" class="w-14 h-14 rounded-2xl p-0.5 glass-panel-sub border border-white/10 hover:border-white cursor-pointer overflow-hidden transition">
+          <img src="${url}" class="w-full h-full object-cover rounded-xl grayscale contrast-125">
+        </div>
+      `).join('');
+    }
+
+    function openAvatarModal() { document.getElementById('avatarModal').classList.remove('hidden'); }
+    function closeAvatarModal() { document.getElementById('avatarModal').classList.add('hidden'); }
+    function setAvatar(url) {
+      hunter.profile.avatar = url;
+      save();
+      closeAvatarModal();
+    }
+    function uploadAvatar(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          hunter.profile.avatar = e.target.result;
+          save();
+          closeAvatarModal();
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    function render() {
+      const p = hunter.profile;
+      document.getElementById('hunterName').innerText = p.name;
+      document.getElementById('avatarLevel').innerText = `LV.${p.level}`;
+      document.getElementById('userAvatar').src = p.avatar;
+
+      const max = p.level * 100;
+      document.getElementById('expLabel').innerText = `${p.currentExp} / ${max} EXP`;
+      document.getElementById('expBar').style.width = `${Math.min(100, (p.currentExp / max) * 100)}%`;
+
+      document.getElementById('statSTR').innerText = p.stats.STR;
+      document.getElementById('statINT').innerText = p.stats.INT;
+      document.getElementById('statVIT').innerText = p.stats.VIT;
+      document.getElementById('statDEX').innerText = p.stats.DEX;
+
+      document.getElementById('streakBadge').innerHTML = `<i class="fas fa-fire mr-1"></i>${p.streak} Ngày`;
+      document.getElementById('streakMultiplierText').innerText = getMultiplier().text;
+
+      let rank = 'HẠNG E';
+      if (p.level >= 50) rank = 'HẠNG S';
+      else if (p.level >= 30) rank = 'HẠNG A';
+      else if (p.level >= 15) rank = 'HẠNG B';
+      else if (p.level >= 6) rank = 'HẠNG C';
+      else if (p.level >= 3) rank = 'HẠNG D';
+
+      document.getElementById('hunterRankBadge').innerText = rank;
+      renderQuestList();
+    }
+
+    function renderQuestList() {
+      const container = document.getElementById('questList');
+      let list = hunter.quests;
+      if (filter === 'daily') list = list.filter(q => q.isDaily);
+
+      if (!list.length) {
+        container.innerHTML = '<div class="text-center py-12 text-slate-500 text-xs italic font-mono">Chưa có mục tiêu nào được thiết lập.</div>';
+        return;
+      }
+
+      container.innerHTML = list.map(q => {
+        const conf = RANK_CONFIG[q.rank] || RANK_CONFIG['E'];
+        let dlHtml = '';
+        if (q.deadline) {
+          const d = new Date(q.deadline);
+          const isOver = new Date() > d && !q.completed;
+          dlHtml = `<span class="text-[10px] font-mono px-2 py-0.5 rounded ${isOver ? 'bg-rose-950/60 text-rose-300 border border-rose-800' : 'glass-panel-sub text-slate-400'} flex items-center gap-1">
+            <i class="fas fa-clock text-[9px]"></i> ${d.toLocaleDateString('vi-VN')} ${d.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}
+          </span>`;
+        }
+
+        return `
+          <div class="glass-panel-sub rounded-2xl p-4 flex items-center justify-between gap-3 border ${q.completed ? 'opacity-40 border-white/5' : 'border-white/5 hover:border-white/20'} transition-all">
+            <div class="flex items-center gap-3 overflow-hidden">
+              <button onclick="toggleQuest('${q.id}')" class="w-6 h-6 rounded-lg border ${q.completed ? 'bg-white border-white text-slate-950' : 'border-white/20 text-transparent'} flex items-center justify-center text-xs shrink-0 transition">
+                <i class="fas fa-check"></i>
+              </button>
+              <div class="overflow-hidden">
+                <span class="text-sm font-medium truncate block ${q.completed ? 'line-through text-slate-500' : 'text-slate-100'}">${q.title}</span>
+                <div class="flex flex-wrap items-center gap-2 mt-1 text-[10px] font-mono">
+                  <span class="px-2 py-0.2 rounded border ${conf.color}">${q.rank}</span>
+                  <span class="text-slate-300">+${q.exp} EXP</span>
+                  <span class="text-slate-500">| ${q.stat}</span>
+                  ${q.isDaily ? '<span class="text-blue-400 font-semibold">DAILY</span>' : ''}
+                  ${dlHtml}
+                </div>
+              </div>
+            </div>
+            <button onclick="deleteQuest('${q.id}')" class="text-slate-500 hover:text-white p-2 transition">
+              <i class="fas fa-trash-can text-xs"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openAuthModal() { document.getElementById('authModal').classList.remove('hidden'); }
+    function closeAuthModal() { document.getElementById('authModal').classList.add('hidden'); }
+    function saveAuth() {
+      const u = document.getElementById('authName').value.trim();
+      const p = document.getElementById('authPass').value.trim();
+      if (!u || !p) return alert("Vui lòng điền đủ tên và mã.");
+      hunter.auth = { username: u, passcode: p };
+      hunter.profile.name = u;
+      document.getElementById('userAccountLabel').innerText = u;
+      save();
+      closeAuthModal();
+      renderLeaderboard();
+      alert(`Đã lưu tiến trình thợ săn: [${u}]!`);
+    }
+    function logoutAuth() {
+      hunter.auth = { username: '', passcode: '' };
+      hunter.profile.name = 'Thợ Săn Vô Danh';
+      document.getElementById('userAccountLabel').innerText = 'SYSTEM READY';
+      save();
+      closeAuthModal();
+      renderLeaderboard();
+    }
+  </script>
+</body>
+</html>
