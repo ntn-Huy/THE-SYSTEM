@@ -529,59 +529,22 @@
       document.getElementById('btnSubmitOnboard').innerText = isLog ? 'Vào Hệ Thống' : 'Tạo Tài Khoản Thợ Săn';
     }
 
-    function submitOnboardingAuth() {
-      const u = document.getElementById('onboardName').value.trim();
-      const p = document.getElementById('onboardPass').value.trim();
-      if (!u || !p) return alert("Vui lòng nhập đầy đủ tên và mã bảo mật!");
-
-      const btn = document.getElementById('btnSubmitOnboard');
-      btn.disabled = true;
-      btn.innerText = "Đang kết nối...";
-
-      fetch(CLOUD_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          action: onboardingMode,
-          username: u,
-          passcode: p,
-          payload: {
-            profile: hunter.profile,
-            quests: hunter.quests
-          }
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        btn.disabled = false;
-        btn.innerText = onboardingMode === 'login' ? 'Vào Hệ Thống' : 'Tạo Tài Khoản Thợ Săn';
-
-        if (data.success) {
-          hunter.auth.username = u;
-          hunter.auth.passcode = p;
-          hunter.auth.hasChosenMode = true;
-
-          if (onboardingMode === 'login' && data.payload) {
-            if (data.payload.profile) hunter.profile = data.payload.profile;
-            if (data.payload.quests) hunter.quests = data.payload.quests;
-          } else {
-            hunter.profile.name = u;
-          }
-
-          document.getElementById('userAccountLabel').innerText = u;
-          document.getElementById('onboardingModal').classList.add('hidden');
-          save();
-          alert(`Chào mừng Thợ Săn [${u}]! Dữ liệu đã đồng bộ thành công.`);
-        } else {
-          alert("Lỗi: " + data.error);
-        }
-      })
-      .catch(err => {
-        btn.disabled = false;
-        btn.innerText = onboardingMode === 'login' ? 'Vào Hệ Thống' : 'Tạo Tài Khoản Thợ Săn';
-        alert("Lỗi kết nối máy chủ: " + err.message);
-      });
-    }
+    if (onboardingMode === 'login' && data.payload) {
+  if (data.payload.profile) hunter.profile = data.payload.profile;
+  if (data.payload.quests) hunter.quests = data.payload.quests;
+  
+  document.getElementById('userAccountLabel').innerText = u;
+  document.getElementById('onboardingModal').classList.add('hidden');
+  
+  // Lưu vào máy mới và ép render lại toàn bộ HUD
+  localStorage.setItem('NEXUS_SYSTEM_SAVE_V6', JSON.stringify(hunter));
+  render();
+  renderFullCalendar();
+  renderLeaderboard();
+  generateNotifications();
+  alert(`Chào mừng trở lại, Thợ Săn [${u}]! Dữ liệu đã tải thành công.`);
+  return;
+}
 
     function continueAsGuest() {
       hunter.auth.hasChosenMode = true;
@@ -947,16 +910,29 @@
       closeAvatarModal();
     }
     function uploadAvatar(input) {
-      if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = e => {
-          hunter.profile.avatar = e.target.result;
-          save();
-          closeAvatarModal();
-        };
-        reader.readAsDataURL(input.files[0]);
-      }
-    }
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        // Nén ảnh về 120x120px dạng WebP/JPEG siêu nhẹ
+        const canvas = document.createElement('canvas');
+        canvas.width = 120;
+        canvas.height = 120;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, 120, 120);
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+        hunter.profile.avatar = compressedBase64;
+        save();
+        closeAvatarModal();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+}
 
     function render() {
       const p = hunter.profile;
