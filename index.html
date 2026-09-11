@@ -94,7 +94,7 @@
   <div class="orb-1"></div>
   <div class="orb-2"></div>
 
-  <!-- HEADER ĐÃ SỬA LỖI ĐÈ KHỐI -->
+  <!-- HEADER -->
   <header class="glass-panel sticky top-0 z-40 px-4 md:px-6 py-3.5 border-x-0 border-t-0 flex items-center justify-between">
     <div class="flex items-center gap-3">
       <div class="w-8 h-8 rounded-lg glass-panel flex items-center justify-center text-white/90 shadow-inner">
@@ -107,7 +107,7 @@
     </div>
     
     <div class="flex items-center gap-2 sm:gap-3">
-      <!-- Điểm danh -->
+      <!-- Nút Điểm danh -->
       <button onclick="claimDailyReward()" id="btnDailyCheckin" class="glass-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 flex items-center gap-2">
         <i class="fas fa-gift text-blue-400"></i>
         <span class="hidden sm:inline">Điểm danh (+EXP)</span>
@@ -129,10 +129,10 @@
         </div>
       </div>
 
-      <!-- Nút Tài Khoản -->
+      <!-- Nút Trạng Thái / Tài Khoản -->
       <button onclick="openAuthModal()" class="glass-input px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-200 border-white/10 hover:border-white/30 flex items-center gap-2">
         <i class="fas fa-user-shield text-blue-400"></i>
-        <span id="userAccountLabel" class="max-w-[90px] truncate">Khách (Offline)</span>
+        <span id="userAccountLabel" class="max-w-[100px] truncate">Khách (Offline)</span>
       </button>
     </div>
   </header>
@@ -228,7 +228,7 @@
             <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Điểm danh
             <span class="w-2 h-2 rounded-full bg-blue-500 ml-1"></span> Có quest
           </div>
-          <button id="btnClearDateFilter" onclick="filterByDate(null)" class="hidden text-blue-400 hover:underline">Xem tất cả ngày</button>
+          <button id="btnClearDateFilter" onclick="filterByDate(null)" class="hidden text-blue-400 hover:underline">Xem tất cả</button>
         </div>
       </div>
 
@@ -335,7 +335,7 @@
           <i class="fas fa-cube text-xl text-blue-400"></i>
         </div>
         <h2 class="text-lg font-bold text-white tracking-wide">CHÀO MỪNG ĐẾN VỚI HỆ THỐNG</h2>
-        <p class="text-xs text-slate-400 mt-1">Vui lòng chọn phương thức đăng nhập để khởi tạo tiến trình</p>
+        <p class="text-xs text-slate-400 mt-1">Vui lòng chọn phương thức tham gia để bắt đầu</p>
       </div>
 
       <div class="flex p-1 bg-white/5 rounded-xl text-xs font-semibold">
@@ -359,7 +359,7 @@
           Vào Hệ Thống
         </button>
         <button onclick="continueAsGuest()" class="w-full py-2.5 rounded-xl glass-panel-sub text-xs text-slate-400 hover:text-white transition">
-          Tiếp tục với tư cách Khách (Dùng ngay không lưu Cloud)
+          Tiếp tục với tư cách Khách (Chỉ lưu trên máy này)
         </button>
       </div>
     </div>
@@ -381,7 +381,7 @@
     </div>
   </div>
 
-  <!-- MODAL ĐĂNG NHẬP THÔNG THƯỜNG -->
+  <!-- MODAL ĐĂNG NHẬP / ĐỒNG BỘ THỦ CÔNG -->
   <div id="authModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
     <div class="glass-panel rounded-3xl p-6 max-w-md w-full flex flex-col gap-4">
       <div class="flex justify-between items-center border-b border-white/10 pb-3">
@@ -399,13 +399,19 @@
         </div>
       </div>
       <div class="flex gap-2 pt-2">
-        <button onclick="saveAuth()" class="flex-1 py-2.5 rounded-xl glass-btn text-white font-semibold text-xs transition bg-white/10 hover:bg-white/20">Lưu tiến trình</button>
+        <button onclick="saveAuth()" class="flex-1 py-2.5 rounded-xl glass-btn text-white font-semibold text-xs transition bg-white/10 hover:bg-white/20">Lưu / Đổi tài khoản</button>
         <button onclick="logoutAuth()" class="px-4 py-2.5 rounded-xl glass-panel-sub text-xs text-slate-400 hover:text-white">Đăng xuất</button>
       </div>
     </div>
   </div>
 
   <script>
+    // ============================================================
+    // CẤU HÌNH API CLOUD GOOGLE APPS SCRIPT
+    // ============================================================
+    const CLOUD_API_URL = "https://script.google.com/macros/s/AKfycbz59g0cTiaIflgZJmrfitefUzFqbpQuKWn5eH4Wpqh9a3th-ycmNF_o7fXiSb6QF3Wpow/exec";
+    let syncTimeout = null;
+
     const KEYWORDS = {
       STR: ['chạy', 'tập', 'gym', 'chống đẩy', 'hít đất', 'squat', 'bơi', 'tạ', 'vận động', 'đi bộ'],
       INT: ['học', 'đọc', 'code', 'lập trình', 'toán', 'ôn thi', 'bài tập', 'nghiên cứu', 'sách', 'tài liệu', 'lab'],
@@ -467,10 +473,51 @@
       initPresets();
     };
 
+    // TỰ ĐỘNG ĐỒNG BỘ CLOUD (DEBOUNCE AUTO-SYNC)
     function save() {
       localStorage.setItem('NEXUS_SYSTEM_SAVE_V6', JSON.stringify(hunter));
       render();
       renderFullCalendar();
+
+      // Nếu đã có tài khoản thì tự động đồng bộ ngầm
+      if (hunter.auth.username && hunter.auth.passcode && CLOUD_API_URL.includes("script.google.com")) {
+        triggerAutoCloudSync();
+      }
+    }
+
+    function triggerAutoCloudSync() {
+      const syncTag = document.getElementById('userAccountLabel');
+      syncTag.innerText = "Đang lưu...";
+
+      clearTimeout(syncTimeout);
+      syncTimeout = setTimeout(() => {
+        fetch(CLOUD_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'sync',
+            username: hunter.auth.username,
+            passcode: hunter.auth.passcode,
+            payload: {
+              profile: hunter.profile,
+              quests: hunter.quests
+            }
+          })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            syncTag.innerText = hunter.auth.username;
+          } else {
+            console.warn("Lỗi đồng bộ:", data.error);
+            syncTag.innerText = hunter.auth.username + " (!)";
+          }
+        })
+        .catch(err => {
+          console.warn("Không có mạng:", err);
+          syncTag.innerText = hunter.auth.username + " (Offline)";
+        });
+      }, 1500);
     }
 
     // ONBOARDING HANDLERS
@@ -487,14 +534,53 @@
       const p = document.getElementById('onboardPass').value.trim();
       if (!u || !p) return alert("Vui lòng nhập đầy đủ tên và mã bảo mật!");
 
-      hunter.auth.username = u;
-      hunter.auth.passcode = p;
-      hunter.auth.hasChosenMode = true;
-      hunter.profile.name = u;
-      document.getElementById('userAccountLabel').innerText = u;
-      document.getElementById('onboardingModal').classList.add('hidden');
-      save();
-      alert(`Chào mừng Thợ Săn [${u}] bước vào Hệ Thống!`);
+      const btn = document.getElementById('btnSubmitOnboard');
+      btn.disabled = true;
+      btn.innerText = "Đang kết nối...";
+
+      fetch(CLOUD_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: onboardingMode,
+          username: u,
+          passcode: p,
+          payload: {
+            profile: hunter.profile,
+            quests: hunter.quests
+          }
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        btn.disabled = false;
+        btn.innerText = onboardingMode === 'login' ? 'Vào Hệ Thống' : 'Tạo Tài Khoản Thợ Săn';
+
+        if (data.success) {
+          hunter.auth.username = u;
+          hunter.auth.passcode = p;
+          hunter.auth.hasChosenMode = true;
+
+          if (onboardingMode === 'login' && data.payload) {
+            if (data.payload.profile) hunter.profile = data.payload.profile;
+            if (data.payload.quests) hunter.quests = data.payload.quests;
+          } else {
+            hunter.profile.name = u;
+          }
+
+          document.getElementById('userAccountLabel').innerText = u;
+          document.getElementById('onboardingModal').classList.add('hidden');
+          save();
+          alert(`Chào mừng Thợ Săn [${u}]! Dữ liệu đã đồng bộ thành công.`);
+        } else {
+          alert("Lỗi: " + data.error);
+        }
+      })
+      .catch(err => {
+        btn.disabled = false;
+        btn.innerText = onboardingMode === 'login' ? 'Vào Hệ Thống' : 'Tạo Tài Khoản Thợ Săn';
+        alert("Lỗi kết nối máy chủ: " + err.message);
+      });
     }
 
     function continueAsGuest() {
@@ -509,12 +595,10 @@
       const now = new Date();
       const todayIso = now.toISOString().split('T')[0];
 
-      // Nhắc điểm danh
       if (hunter.profile.lastCheckin !== todayIso) {
-        list.push({ id: 'checkin', text: 'Bạn chưa điểm danh hôm nay! Điểm danh ngay để nhận EXP chuỗi.', time: 'Hôm nay', type: 'info' });
+        list.push({ id: 'checkin', text: 'Bạn chưa điểm danh hôm nay! Bấm Điểm danh để nhận EXP chuỗi.', time: 'Hôm nay', type: 'info' });
       }
 
-      // Quét các quest sắp hoặc đã quá hạn
       hunter.quests.forEach(q => {
         if (!q.completed && q.deadline) {
           const d = new Date(q.deadline);
@@ -576,7 +660,7 @@
       }
     });
 
-    // CÁC PHÍM TẮT HẠN CHÓT NHANH
+    // PHÍM TẮT HẠN CHÓT NHANH
     function setQuickDeadline(hours) {
       const d = new Date();
       d.setHours(d.getHours() + hours);
@@ -606,7 +690,7 @@
       document.getElementById('questDeadline').value = val;
     }
 
-    // LỊCH TƯƠNG TÁC THEO THÁNG
+    // LỊCH TƯƠNG TÁC
     function changeCalendarMonth(delta) {
       calendarDate.setMonth(calendarDate.getMonth() + delta);
       renderFullCalendar();
@@ -624,7 +708,6 @@
       const daysInMonth = new Date(y, m + 1, 0).getDate();
       const todayIso = new Date().toISOString().split('T')[0];
 
-      // Đếm các quest theo ngày trong tháng
       const questDatesMap = {};
       hunter.quests.forEach(q => {
         if (q.deadline) {
@@ -633,12 +716,10 @@
         }
       });
 
-      // Ô trống đầu tháng
       for (let i = 0; i < firstDay; i++) {
         container.innerHTML += `<div class="p-1 opacity-10 text-slate-600">-</div>`;
       }
 
-      // Các ngày trong tháng
       for (let d = 1; d <= daysInMonth; d++) {
         const pad = n => String(n).padStart(2, '0');
         const iso = `${y}-${pad(m + 1)}-${pad(d)}`;
@@ -684,7 +765,7 @@
       renderQuestList();
     }
 
-    // CÁC HÀM GAMIFICATION & QUEST
+    // LOGIC THỢ SĂN & NHIỆM VỤ
     function getMultiplier() {
       const s = hunter.profile.streak;
       if (s >= 14) return { val: 2.0, text: 'x2.0 EXP' };
@@ -958,10 +1039,12 @@
 
     function openAuthModal() { document.getElementById('authModal').classList.remove('hidden'); }
     function closeAuthModal() { document.getElementById('authModal').classList.add('hidden'); }
+    
     function saveAuth() {
       const u = document.getElementById('authName').value.trim();
       const p = document.getElementById('authPass').value.trim();
       if (!u || !p) return alert("Vui lòng điền đủ tên và mã.");
+      
       hunter.auth.username = u;
       hunter.auth.passcode = p;
       hunter.auth.hasChosenMode = true;
@@ -970,8 +1053,9 @@
       save();
       closeAuthModal();
       renderLeaderboard();
-      alert(`Đã lưu tiến trình thợ săn: [${u}]!`);
+      alert(`Đã liên kết tiến trình thợ săn [${u}]!`);
     }
+
     function logoutAuth() {
       hunter.auth = { username: '', passcode: '', hasChosenMode: false };
       hunter.profile.name = 'Thợ Săn Vô Danh';
