@@ -17,7 +17,6 @@
       background-color: #08090c;
     }
 
-    /* Hiệu ứng Liquid Glass */
     .glass-panel {
       background: rgba(255, 255, 255, 0.03);
       backdrop-filter: blur(18px) saturate(180%);
@@ -77,10 +76,6 @@
       position: fixed; bottom: 10%; right: 15%; width: 500px; height: 500px;
       background: radial-gradient(circle, rgba(14, 165, 233, 0.12) 0%, rgba(0, 0, 0, 0) 70%);
       filter: blur(70px); z-index: 0; pointer-events: none;
-    }
-
-    .avatar-cut {
-      clip-path: polygon(15% 0%, 85% 0%, 100% 15%, 100% 85%, 85% 100%, 15% 100%, 0% 85%, 0% 15%);
     }
 
     ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -327,7 +322,7 @@
     </section>
   </main>
 
-  <!-- ONBOARDING MODAL: CHỌN ĐĂNG NHẬP / ĐĂNG KÝ / KHÁCH KHI MỚI VÀO -->
+  <!-- ONBOARDING MODAL -->
   <div id="onboardingModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl">
     <div class="glass-panel rounded-3xl p-6 max-w-md w-full flex flex-col gap-5 border border-white/20 shadow-2xl">
       <div class="text-center">
@@ -381,7 +376,7 @@
     </div>
   </div>
 
-  <!-- MODAL ĐĂNG NHẬP / ĐỒNG BỘ THỦ CÔNG -->
+  <!-- MODAL ĐĂNG NHẬP THỦ CÔNG -->
   <div id="authModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
     <div class="glass-panel rounded-3xl p-6 max-w-md w-full flex flex-col gap-4">
       <div class="flex justify-between items-center border-b border-white/10 pb-3">
@@ -406,9 +401,6 @@
   </div>
 
   <script>
-    // ============================================================
-    // CẤU HÌNH API CLOUD GOOGLE APPS SCRIPT
-    // ============================================================
     const CLOUD_API_URL = "https://script.google.com/macros/s/AKfycbz59g0cTiaIflgZJmrfitefUzFqbpQuKWn5eH4Wpqh9a3th-ycmNF_o7fXiSb6QF3Wpow/exec";
     let syncTimeout = null;
 
@@ -473,13 +465,12 @@
       initPresets();
     };
 
-    // TỰ ĐỘNG ĐỒNG BỘ CLOUD (DEBOUNCE AUTO-SYNC)
+    // HÀM LƯU: CHỈ LƯU VÀ GỬI ĐỒNG BỘ, TUYỆT ĐỐI KHÔNG GỌI NGƯỢC LẠI
     function save() {
       localStorage.setItem('NEXUS_SYSTEM_SAVE_V6', JSON.stringify(hunter));
       render();
       renderFullCalendar();
 
-      // Nếu đã có tài khoản thì tự động đồng bộ ngầm
       if (hunter.auth.username && hunter.auth.passcode && CLOUD_API_URL.includes("script.google.com")) {
         triggerAutoCloudSync();
       }
@@ -509,18 +500,16 @@
           if (data.success) {
             syncTag.innerText = hunter.auth.username;
           } else {
-            console.warn("Lỗi đồng bộ:", data.error);
             syncTag.innerText = hunter.auth.username + " (!)";
           }
         })
-        .catch(err => {
-          console.warn("Không có mạng:", err);
+        .catch(() => {
           syncTag.innerText = hunter.auth.username + " (Offline)";
         });
       }, 1500);
     }
 
-    // ONBOARDING HANDLERS
+    // ONBOARDING
     function switchOnboardingTab(tab) {
       onboardingMode = tab;
       const isLog = tab === 'login';
@@ -529,30 +518,114 @@
       document.getElementById('btnSubmitOnboard').innerText = isLog ? 'Vào Hệ Thống' : 'Tạo Tài Khoản Thợ Săn';
     }
 
-    if (onboardingMode === 'login' && data.payload) {
-  if (data.payload.profile) hunter.profile = data.payload.profile;
-  if (data.payload.quests) hunter.quests = data.payload.quests;
-  
-  document.getElementById('userAccountLabel').innerText = u;
-  document.getElementById('onboardingModal').classList.add('hidden');
-  
-  // Lưu vào máy mới và ép render lại toàn bộ HUD
-  localStorage.setItem('NEXUS_SYSTEM_SAVE_V6', JSON.stringify(hunter));
-  render();
-  renderFullCalendar();
-  renderLeaderboard();
-  generateNotifications();
-  alert(`Chào mừng trở lại, Thợ Săn [${u}]! Dữ liệu đã tải thành công.`);
-  return;
-}
+    function submitOnboardingAuth() {
+      const u = document.getElementById('onboardName').value.trim();
+      const p = document.getElementById('onboardPass').value.trim();
+      if (!u || !p) return alert("Vui lòng nhập đầy đủ tên và mã bảo mật!");
+
+      const btn = document.getElementById('btnSubmitOnboard');
+      btn.disabled = true;
+      btn.innerText = "Đang kết nối...";
+
+      fetch(CLOUD_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: onboardingMode,
+          username: u,
+          passcode: p,
+          payload: {
+            profile: hunter.profile,
+            quests: hunter.quests
+          }
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        btn.disabled = false;
+        btn.innerText = onboardingMode === 'login' ? 'Vào Hệ Thống' : 'Tạo Tài Khoản Thợ Săn';
+
+        if (data.success) {
+          hunter.auth.username = u;
+          hunter.auth.passcode = p;
+          hunter.auth.hasChosenMode = true;
+
+          // Nếu đăng nhập: nhận dữ liệu từ Cloud về
+          if (onboardingMode === 'login' && data.payload) {
+            if (data.payload.profile) hunter.profile = data.payload.profile;
+            if (data.payload.quests) hunter.quests = data.payload.quests;
+          } else {
+            hunter.profile.name = u;
+          }
+
+          document.getElementById('userAccountLabel').innerText = u;
+          document.getElementById('onboardingModal').classList.add('hidden');
+          
+          localStorage.setItem('NEXUS_SYSTEM_SAVE_V6', JSON.stringify(hunter));
+          render();
+          renderFullCalendar();
+          renderLeaderboard();
+          generateNotifications();
+          alert(`Chào mừng Thợ Săn [${u}]!`);
+        } else {
+          alert("Lỗi: " + data.error);
+        }
+      })
+      .catch(err => {
+        btn.disabled = false;
+        btn.innerText = onboardingMode === 'login' ? 'Vào Hệ Thống' : 'Tạo Tài Khoản Thợ Săn';
+        alert("Lỗi kết nối máy chủ: " + err.message);
+      });
+    }
 
     function continueAsGuest() {
       hunter.auth.hasChosenMode = true;
       document.getElementById('onboardingModal').classList.add('hidden');
-      save();
+      localStorage.setItem('NEXUS_SYSTEM_SAVE_V6', JSON.stringify(hunter));
     }
 
-    // HỆ THỐNG THÔNG BÁO
+    // NÉN VÀ ĐỔI AVATAR (TRÁNH TRÀN 50K KÝ TỰ GOOGLE SHEETS)
+    function uploadAvatar(input) {
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 120;
+            canvas.height = 120;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, 120, 120);
+            const compressed = canvas.toDataURL('image/jpeg', 0.7);
+
+            hunter.profile.avatar = compressed;
+            save();
+            closeAvatarModal();
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function initPresets() {
+      document.getElementById('presetAvatarGrid').innerHTML = PRESET_AVATARS.map(url => `
+        <div onclick="setAvatar('${url}')" class="w-14 h-14 rounded-2xl p-0.5 glass-panel-sub border border-white/10 hover:border-white cursor-pointer overflow-hidden transition">
+          <img src="${url}" class="w-full h-full object-cover rounded-xl grayscale contrast-125">
+        </div>
+      `).join('');
+    }
+
+    function openAvatarModal() { document.getElementById('avatarModal').classList.remove('hidden'); }
+    function closeAvatarModal() { document.getElementById('avatarModal').classList.add('hidden'); }
+    function setAvatar(url) {
+      hunter.profile.avatar = url;
+      save();
+      closeAvatarModal();
+    }
+
+    // THÔNG BÁO
     function generateNotifications() {
       const list = [];
       const now = new Date();
@@ -629,28 +702,21 @@
       d.setHours(d.getHours() + hours);
       formatAndSetDeadline(d);
     }
-
     function setQuickDeadlineTonight() {
       const d = new Date();
       d.setHours(23, 59, 0, 0);
       formatAndSetDeadline(d);
     }
-
     function setQuickDeadlineDays(days) {
       const d = new Date();
       d.setDate(d.getDate() + days);
       d.setHours(23, 59, 0, 0);
       formatAndSetDeadline(d);
     }
-
-    function clearDeadlineInput() {
-      document.getElementById('questDeadline').value = '';
-    }
-
+    function clearDeadlineInput() { document.getElementById('questDeadline').value = ''; }
     function formatAndSetDeadline(date) {
       const pad = n => String(n).padStart(2, '0');
-      const val = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-      document.getElementById('questDeadline').value = val;
+      document.getElementById('questDeadline').value = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
     }
 
     // LỊCH TƯƠNG TÁC
@@ -728,7 +794,7 @@
       renderQuestList();
     }
 
-    // LOGIC THỢ SĂN & NHIỆM VỤ
+    // LOGIC GAME & QUESTS
     function getMultiplier() {
       const s = hunter.profile.streak;
       if (s >= 14) return { val: 2.0, text: 'x2.0 EXP' };
@@ -893,46 +959,6 @@
         ? 'tab-active flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 text-slate-400'
         : 'flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 text-slate-400';
     }
-
-    function initPresets() {
-      document.getElementById('presetAvatarGrid').innerHTML = PRESET_AVATARS.map(url => `
-        <div onclick="setAvatar('${url}')" class="w-14 h-14 rounded-2xl p-0.5 glass-panel-sub border border-white/10 hover:border-white cursor-pointer overflow-hidden transition">
-          <img src="${url}" class="w-full h-full object-cover rounded-xl grayscale contrast-125">
-        </div>
-      `).join('');
-    }
-
-    function openAvatarModal() { document.getElementById('avatarModal').classList.remove('hidden'); }
-    function closeAvatarModal() { document.getElementById('avatarModal').classList.add('hidden'); }
-    function setAvatar(url) {
-      hunter.profile.avatar = url;
-      save();
-      closeAvatarModal();
-    }
-    function uploadAvatar(input) {
-  if (input.files && input.files[0]) {
-    const file = input.files[0];
-    const reader = new FileReader();
-    reader.onload = e => {
-      const img = new Image();
-      img.onload = () => {
-        // Nén ảnh về 120x120px dạng WebP/JPEG siêu nhẹ
-        const canvas = document.createElement('canvas');
-        canvas.width = 120;
-        canvas.height = 120;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, 120, 120);
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-
-        hunter.profile.avatar = compressedBase64;
-        save();
-        closeAvatarModal();
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  }
-}
 
     function render() {
       const p = hunter.profile;
